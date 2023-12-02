@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homepage</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 25px;
+            background-color: #f5f5f5; /* Set a background color */
+        }
+       
+
+        /* Header styles */
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+           
+        }
+
+        /* Navigation bar styles */
+        nav {
+            background-color: #007bff;
+            overflow: hidden;
+        }
+
+        nav a {
+            float: left;
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        /* Clear floats after the nav bar */
+        nav:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        /* Footer styles */
+        footer {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        .order-details, .donar-details {
+            max-width: 700px;
+            margin: 0 auto;
+            background-color: #fff; /* Set a white background color */
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px; /* Add some space between the sections */
+        }
+        .order-details p, .donar-details li {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #333; /* Set a dark text color */
+        }
+        .donar-details li {
+            list-style-type: none; /* Remove bullet points */
+        }
+        .order-details h1, .donar-details h1 {
+            color: #007bff; /* Set a blue color for headings */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+    
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+    
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+    
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }   
+    </style>
+</head>
+<body>
+     <!-- Header -->
+    <header>
+        <h1>Thaagam foundation</h1>
+    </header>
+    <!-- Navigation Bar -->
+    <nav>
+        <a href="#">Home</a>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+    </nav>
+    <div class="order-details">
+    <h1>Order Details</h1>
+    <p>Order ID: {{ razorpay_order_id }}</p>
+    <p>Amount: {{ razorpay_amount }}</p>
+    <p>Currency: {{ currency }}</p>
+    <p>Callback URL: {{ callback_url }}</p>
+    </div>
+    <div class="donar-details">
+        <h1>Donar Details</h1>
+        <div>
+            <div>
+                <a href="{% url 'generate_excel' %}" download="donar_details.xls">Download Excel</a>
+                <a href="{% url 'generate_pdf' %}" download="donar_details.pdf">Download PDF</a>
+            </div>
+        </div>
+        <table >
+            <tr>
+                <th>Name</th>
+                <th>Name On Parcel</th>
+                <th>Mobile Number</th>
+                <th>Selected Category</th>
+                <th>Date of service</th>
+                <th>Count</th>
+                <th>Amount</th>
+            </tr>
+            {% for donar_detail in donar_details %}
+                <tr>
+                    <td>{{ donar_detail.name }}</td>
+                    <td>{{ donar_detail.nameOnParcel }}</td>
+                    <td>{{ donar_detail.mobileNumber }}</td>
+                    <td>{{ donar_detail.selectedCategory }}</td>
+                    <td>{{ donar_detail.date_of_service }}</td>
+                    <td>{{ donar_detail.count }}</td>
+                    <td>{{ donar_detail.enteredAmount }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+     <!-- Footer -->
+    <footer>
+        <p>&copy; 2023 Your Website Name. All rights reserved.</p>
+    </footer>
+
+    
+    <!-- Bootstrap JS (optional, for certain components) -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+</body>
+</html>
