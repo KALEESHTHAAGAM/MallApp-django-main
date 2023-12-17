@@ -15,34 +15,39 @@ from django.contrib.admin.models import LogEntry, ADDITION
 
 # Create your models here.
 class donar_data(models.Model):
-
     name = models.CharField(max_length=100)
     nameOnParcel = models.CharField(max_length=100)
     mobileNumber = models.CharField(max_length=15)
     selectedCategory = models.CharField(max_length=100)
-  
     count = models.IntegerField()
     enteredAmount = models.DecimalField(max_digits=10, decimal_places=2)
-   
+    paymentMethod = models.CharField(max_length=50) 
     # Add other fields as needed
 
     def __str__(self):
-        return f"name: {self.name}, Name on Parcel: {self.nameOnParcel}, Mobile Number: {self.mobileNumber}, Category: {self.selectedCategory},Count: {self.count},enteredAmount: {self.enteredAmount}"
+        return f"name: {self.name}, Name on Parcel: {self.nameOnParcel}, Mobile Number: {self.mobileNumber}, Category: {self.selectedCategory},Count: {self.count}, Amount: {self.enteredAmount},paymentMethod:{self.paymentMethod}"
     
-    
+
+class Order(models.Model):
+    order_id = models.CharField(max_length=255, unique=True)  # Change to order_id instead of razorpay_order_id
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3)
+    receipt = models.CharField(max_length=255)
+    notes = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order ID: {self.id}, Razorpay Order ID: {self.order_id}"  # Update to order_id
 class Donation(models.Model):
-   
-    enteredAmount = models.DecimalField(max_digits=10, decimal_places=2)
+   enteredAmount = models.DecimalField(max_digits=10, decimal_places=2)
     
 class CollectionData(models.Model):
-    Amount = models.DecimalField(max_digits=10, decimal_places=2)
+    enteredAmount = models.DecimalField(max_digits=10, decimal_places=2)
     timestamp = models.DateTimeField()
     
     def __str__(self):
-        return f'enteredAmount: {self.Amount}, Timestamp: {self.timestamp}'
+        return f'Amount: {self. enteredAmount}, Timestamp: {self.timestamp}'
     
-
-
 
 class UserProfileManager(BaseUserManager):
     def create_user(self,  email, password, **extra_fields):
@@ -57,8 +62,6 @@ class UserProfileManager(BaseUserManager):
         return UserProfile
 
 class UserProfile(AbstractBaseUser, PermissionsMixin):
-    
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(max_length=150,unique=True)
     role =models.CharField(max_length=150)
@@ -73,11 +76,9 @@ class UserProfile(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
-    
-
 
 class UserProfileModel(models.Model):
-    user_profile = models.OneToOneField(UserProfile, on_delete=models.CASCADE)
+    user_profile = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
     coins = models.IntegerField(default=0)
 

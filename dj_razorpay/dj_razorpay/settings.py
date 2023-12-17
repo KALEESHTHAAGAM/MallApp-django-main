@@ -34,7 +34,7 @@ RAZOR_KEY_SECRET = 'RadEymMn08SuR4yGSXsvp4qJ'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.19','127.0.0.1','localhost', 'http://127.0.0.1:4040' ,' modest-wondrous-starling.ngrok-free.app' ,'https://ff6d-27-4-243-84.ngrok-free.app']
+ALLOWED_HOSTS = ['192.168.1.19','127.0.0.1','18b1-115-96-6-60.ngrok-free.app']
 
 
 # Application definition

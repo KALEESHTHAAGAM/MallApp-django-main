@@ -47,9 +47,9 @@ from django.middleware.csrf import get_token
 from rest_framework.authentication import SessionAuthentication
 from .models import UserProfile
 from .serializers import UserProfileSerializer
-from .models import donar_data
-from django.contrib.auth import authenticate, login
 
+from django.contrib.auth import authenticate, login
+from payment.models import Order 
 
 
 
@@ -67,16 +67,41 @@ def handle_login(request):
         print(f"username: {username}, Password: {password}")
 
         # Use the email as the username for authentication
-        UserProfile = authenticate(request, username=username, password=password)
+        user_profile = authenticate(request, username=username, password=password)
+        print(f"Authenticated User: {user_profile}")
+
+        if user_profile is not None:
+            # Authentication successful
+            login(request, user_profile)  # Log in the user
+            print(f"User {user_profile.email} has logged in.")
+            request.session['user_profile'] = user_profile.username
+            # You can also access other user data, such as username
+            print(f"Username: {user_profile.username}")
+            return JsonResponse({'success': True})
+
+    # Return an error response outside of the 'if request.method == 'POST':' block
+    return JsonResponse({'success': False, 'message': 'Invalid credentials'}, status=401)
+
+@csrf_exempt
+def handle_login_dashboard(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        username = data.get('email')
+        password = data.get('password')
+
+        print(f"username: {username}, Password: {password}")
+
+        # Use the email as the username for authentication
+        user_profile = authenticate(request, username=username, password=password)
         print(f"Authenticated User: {UserProfile}")
 
-        if UserProfile is not None:
+        if user_profile is not None:
             # Authentication successful
-            login(request, UserProfile)  # Log in the user
+            login(request, user_profile)  # Log in the user
             print(f"User {UserProfile.email} has logged in.")
             request.session['user_profile'] = UserProfile.username
             # You can also access other user data, such as username
-            print(f"Username: {UserProfile.username}")
+            print(f"Username: {user_profile.username}")
             return JsonResponse({'success': True})
 
     # Return an error response outside of the 'if request.method == 'POST':' block
@@ -88,20 +113,53 @@ def handle_login(request):
 # and it won't have the csrf token.
 @csrf_exempt
 def create_razorpay_order(request):
-    client = razorpay.Client(auth=("rzp_test_2h8n68Dp5BnsgZ", "RadEymMn08SuR4yGSXsvp4qJ"))
-   
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+            print(f"Received data: {data}")
+            amount = data.get('amount')
 
-    response = client.order.create({
-        "amount": '200',
-        "currency": "INR",
-        "receipt": "receipt#1",
-        "notes": {
-            "key1": "value3",
-            "key2": "value2"
-        }
-    })
-    
-    return JsonResponse(response)
+            if not amount:
+                raise ValueError("Amount not provided in the request.")
+
+            # Create the order in Razorpay
+            client = razorpay.Client(auth=("rzp_test_2h8n68Dp5BnsgZ", "RadEymMn08SuR4yGSXsvp4qJ"))
+            razorpay_order = client.order.create({
+                "amount": amount,
+                "currency": "INR",
+                "receipt": "receipt#1",
+                "notes": {
+                    "key1": "value3",
+                    "key2": "value2"
+                }
+            })
+
+            # Save the order in your database
+            order = Order.objects.create(
+                order_id=razorpay_order['id'],
+                amount=amount,
+                currency=razorpay_order['currency'],
+                receipt=razorpay_order['receipt'],
+                notes=json.dumps(razorpay_order['notes'])
+                # Add more fields as needed
+            )
+
+            # Return the response
+            return JsonResponse({
+                'status': 'success',
+                'order_id': order.id,  # Optionally, return the ID of the saved order
+                'razorpay_order': razorpay_order
+            })
+        except ValueError as ve:
+            return JsonResponse({'status': 'failure', 'error': str(ve)})
+        except json.JSONDecodeError as jde:
+            return JsonResponse({'status': 'failure', 'error': f'JSON Decode Error: {str(jde)}'})
+        except Exception as e:
+            return JsonResponse({'status': 'failure', 'error': str(e)})
+
+    return JsonResponse({'status': 'failure', 'error': 'Invalid request method'})
+
+       
 #########################################################################################################################
 @csrf_exempt
 def paymenthandler(request):
@@ -124,9 +182,9 @@ def paymenthandler(request):
             result = razorpay_client.utility.verify_payment_signature(
                 params_dict)
             if result is not None:
-                Amount = 10000  # Rs. 200
+                amount = 10000  # Rs. 200
                 try:
-                    razorpay_client.payment.capture(payment_id, Amount)
+                    razorpay_client.payment.capture(payment_id, amount)
                     return JsonResponse({'status': 'success'})
                 except:
                     return JsonResponse({'status': 'failure'})
@@ -138,20 +196,6 @@ def paymenthandler(request):
         return JsonResponse({'status': 'failure'})
 
     
-def process_payment_api(request):
-    if request.method == 'POST':
-        # Extract the data from the POST request
-        payment_id = request.POST.get('razorpay_payment_id', '')
-        razorpay_order_id = request.POST.get('razorpay_order_id', '')
-        signature = request.POST.get('razorpay_signature', '')
-
-        # Process the payment data here
-        # ...
-
-        # Return a JSON response to the React Native app
-        return JsonResponse({'message': 'Payment processed successfully'})
-
-    return JsonResponse({'message': 'Invalid request method'}, status=400)
 #######################################  handle data ##########################################################
 #handle data data save process
 @csrf_exempt
@@ -164,16 +208,41 @@ def handle_data(request):
                                              nameOnParcel = data['nameOnParcel'],
                                              mobileNumber=data['mobileNumber'],
                                              selectedCategory=data['selectedCategory'],
-                                            
                                              count=data['count'],
-                                            enteredAmount=data['enteredAmount'])  # Add other fields
+                                             enteredAmount=data['enteredAmount'],
+                                             paymentMethod='Online')
         donardetails.save()
-        print (f"saved data: {donardetails}")
+        print (f" online saved data: {donardetails}")
         return JsonResponse({'message': 'Success'})
     except json.JSONDecodeError as e:
             return JsonResponse({'error': str(e)}, status=400)
  else:
             return JsonResponse({'message': 'Invalid request method'}, status=400)
+
+
+@csrf_exempt
+def handle_data_cash(request):
+ if request.method == 'POST':
+    try:
+        data = json.loads(request.body)
+        print (f"Received data: {data}")
+        donardetails = donar_data.objects.create(name=data['name'],
+                                             nameOnParcel = data['nameOnParcel'],
+                                             mobileNumber=data['mobileNumber'],
+                                             selectedCategory=data['selectedCategory'],
+                                             count=data['count'],
+                                            enteredAmount=data['enteredAmount'],
+                                            paymentMethod='Cash' )
+                                                           
+        donardetails.save()
+        print (f"Saved cash data: {donardetails}")
+        return JsonResponse({'message': 'Success'})
+    except json.JSONDecodeError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+ else:
+            return JsonResponse({'message': 'Invalid request method'}, status=400)        
+        
+        
 
 def generate_excel(request):
     donar_details = donar_data.objects.all().values('name', 'nameOnParcel', 'mobileNumber', 'selectedCategory', 'count', 'enteredAmount')
@@ -204,27 +273,31 @@ def generate_pdf(request):
     response['Content-Disposition'] = 'attachment; filename=donar_details.pdf'
     return response     
    
-    
+######################################################################################################################################################    
     
 @method_decorator(csrf_exempt, name='dispatch')
 class TodayCollection(View):
-    def post(self, request, *args, **kwargs):
-        # Get today's date
-        now = datetime.now()
-        today = now.date()
-        # Get all collection data
-        collection_data = CollectionData.objects.all()
-        
-          # Filter data for today
-        today_collection_data = [entry for entry in collection_data if entry.timestamp.date() == today]
+        def post(self, request, *args, **kwargs):
+            # Get today's date
+            now = datetime.now()
+            today = now.date()
+            # Get all collection data
+            collection_data = CollectionData.objects.all()
+            
+            # Filter data for today
+            today_collection_data = [entry for entry in collection_data if entry.timestamp.date() == today]
 
-        # Calculate total collection in Python code
-        today_collection = sum(entry.enteredAmount for entry in today_collection_data)
-        
-        if today_collection ==0:
-            today_collection = 100  # Set to 100 if no data is found for today
-        
-        return JsonResponse({'TodayCollection': today_collection})
+            # Calculate total collection in Python code
+            today_collection = sum(entry.enteredAmount for entry in today_collection_data)
+            
+            #Extract entered amount from the request
+            entered_amount = (request.POST.get('entered_amount', 0))
+
+            
+            if today_collection ==0:
+                today_collection += entered_amount # Set to 100 if no data is found for today
+            
+            return JsonResponse({'TodayCollection': today_collection})
     
 class ThisMonthCollection():
     def Post(self, request, *args, **kwargs):
@@ -257,7 +330,7 @@ class DonationListCreateView(generics.ListCreateAPIView):
 
 #         except Exception as e:
 #             return JsonResponse({'error': str(e)}, status=400)   
-        
+                    
 @csrf_exempt
 def create_user_profile(request):
     print(f"Received data: {request.body}")
@@ -306,10 +379,10 @@ razorpay_client = razorpay.Client(
 def homepage(request):
     donar_details = donar_data.objects.all()
     currency = 'INR'
-    Amount = 60000  # Rs. 200
+    amount = 60000  # Rs. 200
 
     # Create a Razorpay Order
-    razorpay_order = razorpay_client.order.create(dict(Amount=Amount,
+    razorpay_order = razorpay_client.order.create(dict(amount=amount,
                                                        currency=currency,
                                                        payment_capture='0'))
 
@@ -321,7 +394,7 @@ def homepage(request):
     context = {}
     context['razorpay_order_id'] = razorpay_order_id
     context['razorpay_merchant_key'] = settings.RAZOR_KEY_ID
-    context['razorpay_amount'] = Amount
+    context['razorpay_amount'] = amount
     context['currency'] = currency
     context['callback_url'] = callback_url
     
