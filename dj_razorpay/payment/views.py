@@ -47,7 +47,7 @@ from django.middleware.csrf import get_token
 from rest_framework.authentication import SessionAuthentication
 from .models import UserProfile
 from .serializers import UserProfileSerializer
-
+from payment.models import TawkToConfiguration, TawkToSetting
 from django.contrib.auth import authenticate, login
 from payment.models import Order 
 
@@ -231,8 +231,8 @@ def handle_data_cash(request):
                                              mobileNumber=data['mobileNumber'],
                                              selectedCategory=data['selectedCategory'],
                                              count=data['count'],
-                                            enteredAmount=data['enteredAmount'],
-                                            paymentMethod='Cash' )
+                                             enteredAmount=data['enteredAmount'],
+                                             paymentMethod='Cash' )
                                                            
         donardetails.save()
         print (f"Saved cash data: {donardetails}")
@@ -409,7 +409,7 @@ def homepage(request):
     return render(request, 'homepage.html', {'donar_details': donar_details, **context})
 
 
-    ##########################################################update user data########################################################################
+    ##########################################################update user data#################################################################################################################
   
 @csrf_exempt
 @require_POST
@@ -447,3 +447,26 @@ def csrf_token(request):
 def get_donar_data(request):
     donor_data = list(donar_data.objects.values())  # Convert QuerySet to list for serialization
     return JsonResponse({'donor_data': donor_data})
+
+
+
+def tawkto_check(request):
+    uid = request.session.get('uid')
+    configuration = TawkToConfiguration.objects.first()
+
+    if not configuration or not configuration.enable_mod:
+        return
+
+    widget_script = configuration.script.value
+    api_key = configuration.api_key.value
+
+    # Your other logic here
+
+    context = {
+        'widget_script': widget_script,
+        'tawkname': tawkname,
+        # Add other context variables as needed
+    }
+
+    return render(request, 'tawkto_integration/tawkto_check.html', context)
+

@@ -50,7 +50,7 @@ class CollectionData(models.Model):
     
 
 class UserProfileManager(BaseUserManager):
-    def create_user(self,  email, password, **extra_fields):
+    def createsuperuser(self,  email, password, **extra_fields):
         """
         Create and return a regular user with an email and password.
         """
@@ -85,3 +85,18 @@ class UserProfileModel(models.Model):
     def save(self, *args, **kwargs):
         # Any additional logic you want to include before saving
         super(UserProfileModel, self).save(*args, **kwargs)
+        
+        
+        
+class TawkToSetting(models.Model):
+    name = models.CharField(max_length=255)
+    value = models.TextField()    
+    
+    
+class TawkToConfiguration(models.Model):
+    script = models.OneToOneField(TawkToSetting, on_delete=models.CASCADE, related_name='script')
+    api_key = models.OneToOneField(TawkToSetting, on_delete=models.CASCADE, related_name='api_key')
+    enable_mod = models.BooleanField(default=False)
+    show_name_if_logged_in = models.BooleanField(default=False)
+    only_show_to_clients = models.BooleanField(default=False)
+    only_show_to_unregistered = models.BooleanField(default=False)        

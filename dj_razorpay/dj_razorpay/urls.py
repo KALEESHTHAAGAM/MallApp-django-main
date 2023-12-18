@@ -26,6 +26,7 @@ from payment.views import  update_user_profile
 from rest_framework.authtoken.views import obtain_auth_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from payment.views import get_donar_data
+from payment.views import tawkto_check
 
 
 
@@ -49,5 +50,8 @@ urlpatterns = [
     path('update_profile/<str:user_id>/', views.update_profile, name='update_profile'),
     path('create_user_profile/',views.create_user_profile, name='create_user_profile'),
     path('api/token/', obtain_auth_token, name='token_obtain_pair'),
-    path('csrf_token/', csrf_token, name='csrf_token'),  
+    path('csrf_token/', csrf_token, name='csrf_token'),
+    path('tawkto-check/', tawkto_check, name='tawkto_check'),
+    
+    
 ]
